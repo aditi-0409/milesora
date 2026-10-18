@@ -16,9 +16,9 @@ The system aims to improve team productivity, task management, communication, an
 - Deadline and status management
 
 ## Tech Stack
-- **Frontend:** HTML, CSS, JavaScript / React
-- **Backend:** Java / Python / Node.js
-- **Database:** MySQL / SQLite / other
+- **Frontend:** React
+- **Backend:** Java Spring Boot
+- **Database:** MySQL
 
 Replace these examples with the technologies you actually use.
 
