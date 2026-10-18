@@ -35,3 +35,9 @@ frontend/dist/
 
 Thumbs.db
 
+
+# Generated build output
+.gradle/
+bin/
+build/
+**/target/
