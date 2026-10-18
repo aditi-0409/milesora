@@ -12,6 +12,7 @@ This folder contains the test plan and test cases for the project.
 - User authentication
 - Team collaboration
 - Input validation
+
 ## Testing Approach
 Testing tools and frameworks will be selected after the frontend and backend technologies are finalized.
 
