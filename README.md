@@ -8,6 +8,14 @@ The Project Management and Team Collaboration System is a software application d
 
 The system aims to improve team productivity, task management, communication, and coordination among team members.
 
+## Objectives
+- Organize multiple projects in one place.
+- Create, assign, and track tasks.
+- Monitor task status and project progress.
+- Help team members coordinate their work.
+- Improve productivity and accountability.
+- Maintain clear and accessible project information.
+
 ## Features
 - User-friendly frontend interface
 - Backend logic and processing
@@ -29,6 +37,8 @@ project-name/
 ├── backend/
 └── README.md
 ```
+## Project Status
+Currently in the initial planning and setup phase. Repository setup, project documentation, and test structure are being prepared before application development begins.
 
 ## Getting Started
 1. Clone this repository.
