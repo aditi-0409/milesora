@@ -28,7 +28,6 @@ The system aims to improve team productivity, task management, communication, an
 - **Backend:** Java Spring Boot
 - **Database:** MySQL
 
-Replace these examples with the technologies you actually use.
 
 ## Project Structure
 ```text
@@ -57,3 +56,18 @@ Currently in the initial planning and setup phase. Repository setup, project doc
 - Add more features.
 - Improve performance and user experience.
 
+## Problem Statement
+Managing projects and coordinating tasks among team members can become difficult when information is scattered across different tools, communication channels, or documents. Teams may face challenges in assigning responsibilities, tracking task progress, managing deadlines, and keeping everyone updated about project activities.
+The Project Management and Team Collaboration System aims to address these challenges by providing a centralized platform where project-related information, tasks, deadlines, and progress can be organized and monitored efficiently.
+
+## Why This Project Is Needed
+A structured project management system can help teams:
+- Keep project information organized in one place.
+- Assign tasks and clarify individual responsibilities.
+- Track task status and upcoming deadlines.
+- Improve communication and coordination among team members.
+- Monitor overall project progress more effectively.
+- Reduce confusion caused by scattered project information.
+
+## Expected Outcome
+The expected outcome is a user-friendly system that helps teams organize their projects, manage tasks, monitor progress, and coordinate their work more efficiently. The actual features and implementation will be finalized as the project develops.
