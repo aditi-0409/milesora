@@ -17,6 +17,7 @@ import { CollaborationPage } from './pages/collaboration/CollaborationPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { NotificationsPage } from './pages/notifications/NotificationsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import BackendConnectionTest from "./BackendConnectionTest";
 
 export default function App() {
   return (
@@ -24,6 +25,12 @@ export default function App() {
       {/* Public Auth Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      {/* Temporary backend connection test */}
+      <Route
+        path="/backend-test"
+        element={<BackendConnectionTest />}
+      />
 
       {/* Protected App Shell */}
       <Route
