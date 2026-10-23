@@ -23,9 +23,9 @@ public class CorsConfig {
             List.of("GET", "POST", "PUT", "PATCH",
                     "DELETE", "OPTIONS")
         );
-
+        
         config.setAllowedHeaders(
-            List.of("Content-Type", "X-XSRF-TOKEN")
+        		List.of("Authorization", "Content-Type", "Accept", "X-XSRF-TOKEN")
         );
 
         config.setAllowCredentials(true);

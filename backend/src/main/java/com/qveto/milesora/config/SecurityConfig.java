@@ -1,3 +1,4 @@
+
 package com.qveto.milesora.config;
 
 import org.springframework.context.annotation.Bean;
@@ -14,11 +15,17 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http) throws Exception {
 
-    	http.cors(cors -> {});
-    	http
+        http
+            .cors(cors -> {})
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/api/auth/register")
+            )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/error", "/css/**", "/js/**", "/api/test")
-                    .permitAll()
+                .requestMatchers(
+                    "/", "/error", "/css/**", "/js/**", "/api/test"
+                ).permitAll()
+
+                .requestMatchers("/api/auth/register").permitAll()
 
                 .requestMatchers("/admin/**")
                     .hasRole("ADMIN")
@@ -28,20 +35,15 @@ public class SecurityConfig {
 
                 .requestMatchers("/employee/**")
                     .hasAnyRole(
-                        "ADMIN",
-                        "PROJECT_MANAGER",
-                        "EMPLOYEE"
+                        "ADMIN", "PROJECT_MANAGER", "EMPLOYEE"
                     )
 
-                .anyRequest()
-                    .authenticated()
+                .anyRequest().authenticated()
             )
-
             .formLogin(form -> form
                 .defaultSuccessUrl("/", false)
                 .permitAll()
             )
-
             .logout(logout -> logout
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()

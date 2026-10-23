@@ -12,5 +12,7 @@ public interface AppUserRepository
     Optional<AppUser> findByUsername(String username);
 
     boolean existsByUsername(String username);
+    boolean existsByEmail(String email);
+
 }
 
