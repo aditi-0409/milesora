@@ -61,44 +61,58 @@ export function SettingsPage() {
     }
   };
 
+  
   const handleTestBackendConnection = async () => {
     setTestingConnection(true);
     setConnectionResult(null);
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+    const apiUrl = (
+      import.meta.env.VITE_API_BASE_URL ||
+      'http://localhost:8080/api'
+    ).replace(/\/+$/, '');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const res = await fetch(`${apiUrl}/health`, {
+      const res = await fetch(`${apiUrl}/test`, {
+        method: 'GET',
         signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      }).catch(async () => {
-        // Try root fallback
-        return fetch(apiUrl, { signal: controller.signal });
+        headers: {
+          Accept: 'application/json',
+        },
       });
-      clearTimeout(timeoutId);
 
-      if (res && res.ok) {
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success === true) {
         setConnectionResult({
           status: 'SUCCESS',
-          message: `Successfully reached Spring Boot REST API at ${apiUrl} (${res.status} ${res.statusText})`
+          message: `Backend connected successfully: ${data.message}`,
         });
         success('Live backend connection verified!');
       } else {
         setConnectionResult({
           status: 'WARNING',
-          message: `Endpoint reached at ${apiUrl} but returned status ${res.status}. Verify your Spring Security permitAll rules.`
+          message: `Backend returned HTTP ${res.status}. ${
+            data.message || 'Please check the backend response.'
+          }`,
         });
       }
     } catch (err) {
       setConnectionResult({
         status: 'OFFLINE',
-        message: `Backend is unreachable at ${apiUrl}. When you run your Java Spring Boot service (e.g., ./mvnw spring-boot:run on port 8080), Taskora Pulse will seamlessly connect.`
+        message:
+          err.name === 'AbortError'
+            ? 'Backend request timed out. Check if Spring Boot is running.'
+            : 'Cannot connect to backend. Check server and CORS settings.',
       });
     } finally {
+      clearTimeout(timeoutId);
       setTestingConnection(false);
     }
   };
+
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">

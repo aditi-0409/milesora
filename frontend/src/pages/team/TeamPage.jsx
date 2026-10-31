@@ -250,7 +250,7 @@ export function TeamPage() {
         isOpen={inviteModalOpen}
         onClose={() => setInviteModalOpen(false)}
         title="Invite New Colleague"
-        subtitle="Provision an enterprise access seat in Taskora Pulse"
+        subtitle="Provision an enterprise access seat in Milesora"
       >
         <form onSubmit={handleInvite} className="space-y-4">
           <Input

@@ -53,11 +53,11 @@ export function Sidebar({ collapsed, setCollapsed }) {
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800/80">
         <Link to="/" className="flex items-center gap-3 overflow-hidden">
-          <img src="/logo.svg" alt="Taskora Pulse Logo" className="w-9 h-9 flex-shrink-0" />
+          <img src="/logo.svg" alt="Milesora Logo" className="w-9 h-9 flex-shrink-0" />
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-extrabold text-base bg-gradient-to-r from-brand-600 via-cyan-600 to-brand-800 dark:from-brand-400 dark:via-cyan-400 dark:to-brand-300 bg-clip-text text-transparent tracking-tight">
-                Taskora Pulse
+                Milesora
               </span>
               <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
                 Team Intelligence

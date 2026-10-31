@@ -1,7 +1,7 @@
 import { getDaysRemaining } from './dateUtils';
 
 /**
- * Taskora Pulse Deterministic Project Risk Engine
+ * Milesora Deterministic Project Risk Engine
  * Documented rule set for evaluating project and task health.
  * 
  * Rules:

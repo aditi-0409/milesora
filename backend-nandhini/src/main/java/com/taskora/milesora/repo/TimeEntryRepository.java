@@ -1,0 +1,1 @@
+package com.taskora.milesora.repo;import com.taskora.milesora.model.TimeEntryEntity;import org.springframework.data.jpa.repository.JpaRepository;import java.util.List;public interface TimeEntryRepository extends JpaRepository<TimeEntryEntity,Long>{List<TimeEntryEntity> findByTaskId(Long id);}

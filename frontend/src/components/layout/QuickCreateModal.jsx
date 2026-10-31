@@ -124,7 +124,7 @@ export function QuickCreateModal({ isOpen, onClose, onCreated }) {
       isOpen={isOpen}
       onClose={onClose}
       title="Quick Create"
-      subtitle="Instantly register a new item in Taskora Pulse"
+      subtitle="Instantly register a new item in Milesora"
     >
       {/* Tab Switcher */}
       <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6">

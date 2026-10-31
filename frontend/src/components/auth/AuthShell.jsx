@@ -88,7 +88,7 @@ export function AuthBrand({ title, subtitle }) {
     <div className="text-center mb-6">
       <div className="inline-flex items-center gap-2 mb-3">
         <img src="/logo.svg" alt="" className="w-8 h-8 object-contain" />
-        <span className="text-sm font-bold tracking-wide text-white/90">Taskora Pulse</span>
+        <span className="text-sm font-bold tracking-wide text-white/90">Milesora</span>
       </div>
       <h1 className="text-2xl font-semibold text-white tracking-tight">{title}</h1>
       {subtitle && <p className="text-xs text-white/60 mt-1.5">{subtitle}</p>}

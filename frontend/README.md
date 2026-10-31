@@ -1,4 +1,4 @@
-# Taskora Pulse — Project & Team Intelligence Platform
+# Milesora — Project & Team Intelligence Platform
 
 > **Tagline**: Plan Smarter. Collaborate Better. Deliver on Time.  
 > **Target Backend**: Java 17+, Spring Boot 3.x, Spring Security (JWT), Spring Data JPA, MySQL 8.x
@@ -6,7 +6,7 @@
 ---
 
 ## 1. Overview
-Taskora Pulse is an enterprise project management and team intelligence platform built with React, Vite, Tailwind CSS, and Recharts. It features deep indigo/violet SaaS aesthetics, role-based workflows for Administrators, Project Managers, and Engineers, an interactive Kanban board with dependency enforcement, and an algorithmic project risk intelligence engine.
+Milesora is an enterprise project management and team intelligence platform built with React, Vite, Tailwind CSS, and Recharts. It features deep indigo/violet SaaS aesthetics, role-based workflows for Administrators, Project Managers, and Engineers, an interactive Kanban board with dependency enforcement, and an algorithmic project risk intelligence engine.
 
 ---
 
@@ -14,7 +14,7 @@ Taskora Pulse is an enterprise project management and team intelligence platform
 
 - **Role-Based Experience**: Tailored dashboards and actions for `ADMIN` (Platform governance & team audit), `PROJECT_MANAGER` (Initiative delivery & bottleneck resolution), and `EMPLOYEE` (Personal queue & today's focus).
 - **Interactive Kanban Board**: 4 stages (`TO_DO`, `IN_PROGRESS`, `IN_REVIEW`, `COMPLETED`) with drag-and-drop, accessible keyboard controls, optimistic updates with rollback, and dependency validation rules.
-- **Taskora Pulse Project Insights (Flagship)**: Algorithmic health index (0-100), factor identification (approaching deadlines, incomplete prerequisite dependencies, overloaded assignees), and clear remediation recommendations.
+- **Milesora Project Insights (Flagship)**: Algorithmic health index (0-100), factor identification (approaching deadlines, incomplete prerequisite dependencies, overloaded assignees), and clear remediation recommendations.
 - **Centralized API Architecture**: Single configured `apiClient.js` with Bearer token injection, automatic error normalization (400, 401, 403, 404, 409, 500), and multipart/form-data support.
 - **Reports & Analytics**: Recharts data visualizations with dynamic project filters and direct CSV data export.
 - **Dual-Mode System**: Instant, toggleable Demo Mode with local state persistence alongside strict live backend integration mode.

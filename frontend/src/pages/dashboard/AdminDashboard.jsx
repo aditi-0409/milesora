@@ -140,7 +140,7 @@ export function AdminDashboard({ data, onOpenQuickCreate }) {
         <Card
           className="lg:col-span-2"
           title="Project Health & Risk Overview"
-          subtitle="Real-time delivery risks calculated by Taskora Pulse deterministic risk engine"
+          subtitle="Real-time delivery risks calculated by Milesora deterministic risk engine"
           action={
             <Link to="/insights" className="text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 font-semibold">
               Deep Insights <ArrowUpRight className="w-3.5 h-3.5" />
@@ -176,7 +176,7 @@ export function AdminDashboard({ data, onOpenQuickCreate }) {
                 Pulse Recommendation Engine
               </h4>
               <p className="text-xs text-brand-700 dark:text-brand-300 mt-0.5 leading-relaxed">
-                Taskora Pulse detected 1 critical overdue task in the Mobile App project assigned to Alex Rivera. 
+                Milesora detected 1 critical overdue task in the Mobile App project assigned to Alex Rivera. 
                 Rebalancing auxiliary code reviews to Marcus Vance will protect milestone delivery on Dec 15.
               </p>
             </div>

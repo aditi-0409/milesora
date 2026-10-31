@@ -1,0 +1,3 @@
+package com.taskora.milesora.model;
+import jakarta.persistence.*;import java.time.LocalDate;import java.time.LocalDateTime;
+@Entity @Table(name="tasks") public class TaskEntity {@Id @GeneratedValue(strategy=GenerationType.IDENTITY) public Long id; @Column(nullable=false) public String title; @Column(length=3000) public String description; public String status="TO_DO"; public String priority="MEDIUM"; public LocalDate dueDate; public LocalDate startDate; public Long projectId; public Long assigneeId; public Integer estimatedHours=0; public Double spentHours=0.0; public LocalDateTime createdAt=LocalDateTime.now(); public TaskEntity(){} }

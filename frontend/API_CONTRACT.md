@@ -1,9 +1,9 @@
-# Taskora Pulse — Java Spring Boot REST API Contract Specification
+# Milesora — Java Spring Boot REST API Contract Specification
 **Status**: Proposed Backend Contract Specification (v1.0.0)  
 **Target Backend Framework**: Java 17+, Spring Boot 3.x, Spring Security (JWT / Bearer Token), Spring Data JPA, MySQL 8.x  
 **Base URL**: `http://localhost:8080/api`
 
-This document defines the complete REST API contract that the Taskora Pulse frontend is built to communicate with. All endpoints, DTO schemas, enumerations, HTTP status codes, and error payloads are detailed below.
+This document defines the complete REST API contract that the Milesora frontend is built to communicate with. All endpoints, DTO schemas, enumerations, HTTP status codes, and error payloads are detailed below.
 
 ---
 
@@ -271,7 +271,7 @@ Updates task status (used in Kanban board and Task details).
 
 ---
 
-### 2.5 Taskora Pulse Project Insights (`/insights`)
+### 2.5 Milesora Project Insights (`/insights`)
 
 #### `GET /insights/projects/{id}`
 Returns algorithmic project health, risk distribution, and prioritized recommendations.

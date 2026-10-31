@@ -1,0 +1,1 @@
+package com.taskora.milesora.repo;import com.taskora.milesora.model.ProjectEntity;import org.springframework.data.jpa.repository.JpaRepository;public interface ProjectRepository extends JpaRepository<ProjectEntity,Long>{}

@@ -58,7 +58,7 @@ export function InsightsPage() {
   };
 
   if (loading && !insights) {
-    return <LoadingSpinner text="Running Taskora Pulse Deterministic Risk Engine..." size="lg" />;
+    return <LoadingSpinner text="Running Milesora Deterministic Risk Engine..." size="lg" />;
   }
 
   const {
@@ -85,7 +85,7 @@ export function InsightsPage() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            Taskora Pulse Project Insights
+            Milesora Project Insights
           </h1>
           <p className="text-xs sm:text-sm text-brand-200/90 mt-1.5 max-w-2xl leading-relaxed">
             Algorithmic early-warning intelligence detecting dependency bottlenecks, SLA delivery risks, and team workload strain using verified rule sets.

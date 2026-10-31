@@ -58,9 +58,9 @@ export function MobileDrawer({ isOpen, onClose }) {
       <div className="relative w-4/5 max-w-xs bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800">
           <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
-            <img src="/logo.svg" alt="Taskora Pulse" className="w-8 h-8" />
+            <img src="/logo.svg" alt="Milesora" className="w-8 h-8" />
             <span className="font-extrabold text-base bg-gradient-to-r from-brand-600 via-cyan-600 to-brand-800 dark:from-brand-400 dark:via-cyan-400 dark:to-brand-300 bg-clip-text text-transparent">
-              Taskora Pulse
+              Milesora
             </span>
           </Link>
           <button

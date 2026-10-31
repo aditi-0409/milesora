@@ -221,7 +221,7 @@ export function RegisterPage() {
         avatar: avatar || undefined,
         password: form.password,
       });
-      toastSuccess(`Welcome to Taskora Pulse, ${res.user.name}!`);
+      toastSuccess(`Welcome to Milesora, ${res.user.name}!`);
       navigate('/', { replace: true });
     } catch (err) {
       setFormError(err.message || 'Registration failed. Please try again.');

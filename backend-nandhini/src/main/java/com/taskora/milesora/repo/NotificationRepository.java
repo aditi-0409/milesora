@@ -1,0 +1,1 @@
+package com.taskora.milesora.repo;import com.taskora.milesora.model.NotificationEntity;import org.springframework.data.jpa.repository.JpaRepository;import java.util.List;public interface NotificationRepository extends JpaRepository<NotificationEntity,Long>{List<NotificationEntity> findByUserIdOrderByCreatedAtDesc(Long id);}

@@ -20,16 +20,29 @@ import {
 
 export function ManagerDashboard({ data, onOpenQuickCreate }) {
   const {
-    managedProjects = [],
-    totalTasks = 0,
-    completedTasks = 0,
-    inProgressTasks = 0,
-    inReviewTasks = 0,
-    toDoTasks = 0,
-    overdueTasks = [],
-    blockedTasks = [],
-    recentActivity = []
-  } = data || {};
+  managedProjects = [],
+  totalProjects = 0,
+  totalTasks = 0,
+  completedTasks = 0,
+  inProgressTasks = 0,
+  inReviewTasks = 0,
+  toDoTasks = 0,
+  overdueTasks = [],
+  blockedTasks = [],
+  recentActivity = []
+} = data || {};
+
+const projectsList = Array.isArray(managedProjects)
+  ? managedProjects
+  : Array.isArray(managedProjects?.data)
+    ? managedProjects.data
+    : Array.isArray(managedProjects?.content)
+      ? managedProjects.content
+      : [];
+
+const managedProjectsCount = Array.isArray(managedProjects)
+  ? managedProjects.length
+  : Number(managedProjects) || 0;
 
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
@@ -65,7 +78,7 @@ export function ManagerDashboard({ data, onOpenQuickCreate }) {
         <Card>
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Managed Projects</span>
           <div className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-2">
-            {managedProjects.length}
+            {managedProjectsCount}
           </div>
           <p className="text-xs text-brand-600 dark:text-brand-400 font-medium mt-1">
             Active Leadership
@@ -114,7 +127,7 @@ export function ManagerDashboard({ data, onOpenQuickCreate }) {
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {managedProjects.map(p => {
+          {projectsList.map(p => {
             const statusConfig = PROJECT_STATUS_CONFIG[p.status] || PROJECT_STATUS_CONFIG.PLANNING;
             const progress = p.taskStats?.progressPercentage || 0;
             return (

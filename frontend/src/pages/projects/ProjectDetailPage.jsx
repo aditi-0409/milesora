@@ -355,7 +355,7 @@ export function ProjectDetailPage() {
       {/* Tab 5: Insights */}
       {activeTab === 'insights' && (
         <div className="space-y-6">
-          <Card title="Taskora Pulse Algorithmic Insights" subtitle="Predictive risk conditions and recommended actions">
+          <Card title="Milesora Algorithmic Insights" subtitle="Predictive risk conditions and recommended actions">
             {insights?.atRiskTasks?.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-400">
                 No high-risk bottlenecks detected in this project. Everything is running within target thresholds!

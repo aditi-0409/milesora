@@ -1,5 +1,5 @@
 /**
- * Taskora Pulse - Standard Enterprise Mock Data
+ * Milesora - Standard Enterprise Mock Data
  * Structured to strictly mirror Java Spring Boot JPA entities and DTO contracts.
  */
 
@@ -92,7 +92,7 @@ export const INITIAL_PROJECTS = [
   },
   {
     id: 2,
-    name: 'Taskora Pulse Mobile App V2',
+    name: 'Milesora Mobile App V2',
     key: 'TPM',
     description: 'Build native iOS and Android companion applications featuring offline caching, biometric login, and push notifications.',
     status: 'ACTIVE',
@@ -212,7 +212,7 @@ export const INITIAL_TASKS = [
     status: 'IN_REVIEW',
     priority: 'HIGH',
     projectId: 2,
-    projectName: 'Taskora Pulse Mobile App V2',
+    projectName: 'Milesora Mobile App V2',
     assignee: INITIAL_USERS[0], // Sarah
     startDate: '2026-09-10',
     dueDate: '2026-10-15', // Due tomorrow
@@ -230,7 +230,7 @@ export const INITIAL_TASKS = [
     status: 'IN_PROGRESS',
     priority: 'CRITICAL',
     projectId: 2,
-    projectName: 'Taskora Pulse Mobile App V2',
+    projectName: 'Milesora Mobile App V2',
     assignee: INITIAL_USERS[1], // Alex
     startDate: '2026-09-25',
     dueDate: '2026-10-12', // OVERDUE by 2 days!

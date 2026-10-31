@@ -237,7 +237,7 @@ export function EmployeeDashboard({ data, user, onOpenQuickCreate }) {
                     TPM
                   </span>
                   <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                    Taskora Pulse Mobile App V2
+                    Milesora Mobile App V2
                   </span>
                 </div>
                 <ArrowUpRight className="w-4 h-4 text-slate-400" />
