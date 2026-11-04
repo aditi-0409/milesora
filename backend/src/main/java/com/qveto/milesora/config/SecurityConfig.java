@@ -53,16 +53,14 @@ public class SecurityConfig {
                 ).permitAll()
 
                 // Role-specific endpoints.
-                .requestMatchers("/admin/**")
-                    .hasRole("ADMIN")
-
-                .requestMatchers("/manager/**")
-                    .hasAnyRole("ADMIN", "PROJECT_MANAGER")
-
-                .requestMatchers("/employee/**")
-                    .hasAnyRole(
-                        "ADMIN", "PROJECT_MANAGER", "EMPLOYEE"
-                    )
+                .requestMatchers("/api/admin/**")
+                .hasRole("ADMIN")
+                .requestMatchers("/api/manager/**")
+                .hasAnyRole("ADMIN", "PROJECT_MANAGER")
+                .requestMatchers("/api/employee/**")
+                .hasAnyRole(
+                    "ADMIN", "PROJECT_MANAGER", "EMPLOYEE"
+                )
 
                 // All other endpoints require authentication.
                 .anyRequest().authenticated()
@@ -91,4 +89,3 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 }
-

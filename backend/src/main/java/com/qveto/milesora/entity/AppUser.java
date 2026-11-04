@@ -39,6 +39,9 @@ public class AppUser {
 
     private String title;
     private String department;
+    
+    @Column(nullable = false)
+    private boolean enabled = true;
 
     public AppUser() {
     }
@@ -86,6 +89,12 @@ public class AppUser {
 
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
+    
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 }
-
-

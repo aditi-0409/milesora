@@ -33,10 +33,11 @@ public class CustomUserDetailsService
             );
 
         return User.builder()
-            .username(appUser.getUsername())
-            .password(appUser.getPassword())
-            .roles(appUser.getRole().name())
-            .build();
+                .username(appUser.getUsername())
+                .password(appUser.getPassword())
+                .roles(appUser.getRole().name())
+                .disabled(!appUser.isEnabled())
+                .build();
     }
 }
 
