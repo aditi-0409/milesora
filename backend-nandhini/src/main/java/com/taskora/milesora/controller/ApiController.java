@@ -7,7 +7,71 @@ import com.taskora.milesora.model.*;import com.taskora.milesora.repo.*;import or
  private UserEntity current(String auth){if(auth==null)return users.findByUsername("admin").orElse(null);String token=auth.replaceFirst("(?i)^Bearer ","");Long id=tokens.get(token);return id==null?users.findByUsername("admin").orElse(null):users.findById(id).orElse(null);}
  @GetMapping("/test") public Map<String,Object> test(){return Map.of("success",true,"message","Milesora backend connected","service","Taskora Pulse API");}
  @PostMapping("/auth/login") public ResponseEntity<?> login(@RequestBody Map<String,Object> b){String e=String.valueOf(b.getOrDefault("email",""));String pw=String.valueOf(b.getOrDefault("password",""));UserEntity u=users.findByEmail(e).or(()->users.findByUsername(e)).orElse(null);if(u==null||!(Objects.equals(u.password,pw)||passwordEncoder.matches(pw,u.password)))return ResponseEntity.status(401).body(Map.of("status",401,"error","Unauthorized","message","Invalid email/username or password"));if(!u.password.startsWith("$2a$")&&!u.password.startsWith("$2b$")&&!u.password.startsWith("$2y$")){u.password=passwordEncoder.encode(pw);users.save(u);}String token=UUID.randomUUID().toString();tokens.put(token,u.id);return ResponseEntity.ok(Map.of("token",token,"type","Bearer","user",userMap(u)));}
- @PostMapping("/auth/register") public ResponseEntity<?> register(@RequestBody Map<String,Object>b){String email=String.valueOf(b.getOrDefault("email",""));if(email.isBlank()||String.valueOf(b.getOrDefault("password","")).isBlank())return ResponseEntity.badRequest().body(Map.of("message","Name, email and password are required"));if(users.existsByEmail(email))return ResponseEntity.status(409).body(Map.of("message","Email already registered"));UserEntity u=new UserEntity();u.email=email;u.username=email;u.password=passwordEncoder.encode(String.valueOf(b.get("password")));u.name=String.valueOf(b.getOrDefault("name",email));u.role=String.valueOf(b.getOrDefault("role","EMPLOYEE"));u.title=String.valueOf(b.getOrDefault("title","Team Member"));users.save(u);String token=UUID.randomUUID().toString();tokens.put(token,u.id);return ResponseEntity.status(201).body(Map.of("token",token,"type","Bearer","user",userMap(u)));}
+
+@PostMapping("/auth/register")
+public ResponseEntity<?> register(@RequestBody Map<String, Object> b) {
+
+    String email = Objects.toString(b.get("email"), "").trim();
+    String password = Objects.toString(b.get("password"), "");
+    String firstName = Objects.toString(b.get("firstName"), "").trim();
+    String middleName = Objects.toString(b.get("middleName"), "").trim();
+    String lastName = Objects.toString(b.get("lastName"), "").trim();
+
+    String name = Objects.toString(
+        b.get("name"),
+        (firstName + " " + middleName + " " + lastName).trim()
+    );
+
+    if (email.isBlank() || password.isBlank()
+            || firstName.isBlank() || lastName.isBlank()) {
+        return ResponseEntity.badRequest().body(
+            Map.of("message", "First name, last name, email and password are required")
+        );
+    }
+
+    if (users.existsByEmail(email)) {
+        return ResponseEntity.status(409).body(
+            Map.of("message", "Email already registered")
+        );
+    }
+
+    UserEntity u = new UserEntity();
+
+    u.email = email;
+    u.username = email;
+    u.password = passwordEncoder.encode(password);
+    u.name = name;
+
+    u.firstName = firstName;
+    u.middleName = middleName.isBlank() ? null : middleName;
+    u.lastName = lastName;
+
+    u.phone = Objects.toString(b.get("phone"), "");
+    u.department = Objects.toString(b.get("department"), "");
+    u.title = Objects.toString(b.get("title"), "Team Member");
+
+    String dobValue = Objects.toString(b.get("dob"), "");
+    if (!dobValue.isBlank()) {
+        u.dob = LocalDate.parse(dobValue);
+    }
+
+    // Public registration must not allow self-assigned admin privileges.
+    u.role = "EMPLOYEE";
+
+    users.save(u);
+
+    String token = UUID.randomUUID().toString();
+    tokens.put(token, u.id);
+
+    return ResponseEntity.status(201).body(
+        Map.of(
+            "token", token,
+            "type", "Bearer",
+            "user", userMap(u)
+        )
+    );
+}
+
  @GetMapping("/auth/me") public Object me(@RequestHeader(value="Authorization",required=false)String a){return userMap(current(a));}
  @PostMapping("/auth/logout") public Map<String,Object> logout(@RequestHeader(value="Authorization",required=false)String a){if(a!=null)tokens.remove(a.replaceFirst("(?i)^Bearer ",""));return Map.of("success",true);}
  @GetMapping("/team") public List<Map<String,Object>> team(){return users.findAll().stream().map(u->{Map<String,Object>m=userMap(u);long assigned=tasks.findAll().stream().filter(t->Objects.equals(t.assigneeId,u.id)).count();m.put("assignedTasks",assigned);m.put("completedTasks",tasks.findAll().stream().filter(t->Objects.equals(t.assigneeId,u.id)&&"COMPLETED".equals(t.status)).count());m.put("overdueTasks",0);m.put("activeWorkload",assigned>4?"OVERLOADED":"OPTIMAL");m.put("activeProjects",projects.findAll().stream().map(p->p.name).toList());return m;}).toList();}
