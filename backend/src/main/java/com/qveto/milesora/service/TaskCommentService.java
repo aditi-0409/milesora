@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.qveto.milesora.entity.AppUser;
+import com.qveto.milesora.entity.ProjectMember;
+import com.qveto.milesora.entity.ProjectMemberRole;
+import com.qveto.milesora.entity.Role;
 import com.qveto.milesora.entity.Task;
 import com.qveto.milesora.entity.TaskComment;
 import com.qveto.milesora.repository.AppUserRepository;
@@ -38,15 +41,16 @@ public class TaskCommentService {
     public TaskComment addComment(
             Long taskId, String content, Long requesterId) {
 
-        Task task = getTask(taskId);
-        AppUser author = getUser(requesterId);
-
         validateContent(content);
-        validateProjectAccess(task, requesterId);
+
+        Task task = getTask(taskId);
+        AppUser requester = getUser(requesterId);
+
+        validateCommentWriteAccess(task, requester);
 
         TaskComment comment = new TaskComment();
         comment.setTask(task);
-        comment.setAuthor(author);
+        comment.setAuthor(requester);
         comment.setContent(content.trim());
 
         return commentRepository.save(comment);
@@ -58,13 +62,15 @@ public class TaskCommentService {
             Long taskId, Long requesterId) {
 
         Task task = getTask(taskId);
-        validateProjectAccess(task, requesterId);
+        AppUser requester = getUser(requesterId);
+
+        validateProjectViewAccess(task, requester);
 
         return commentRepository
                 .findAllByTask_IdOrderByCreatedAtAsc(taskId);
     }
 
-    // Update own comment
+    // Update own comment or moderate another user's comment
     public TaskComment updateComment(
             Long taskId, Long commentId,
             String content, Long requesterId) {
@@ -72,12 +78,16 @@ public class TaskCommentService {
         validateContent(content);
 
         TaskComment comment = getComment(taskId, commentId);
+        AppUser requester = getUser(requesterId);
 
-        validateProjectAccess(comment.getTask(), requesterId);
+        validateCommentWriteAccess(comment.getTask(), requester);
 
-        if (!comment.getAuthor().getId().equals(requesterId)) {
+        boolean isAuthor =
+                comment.getAuthor().getId().equals(requesterId);
+
+        if (!isAuthor && !canModerate(comment.getTask(), requester)) {
             throw new SecurityException(
-                    "You can only edit your own comments");
+                    "You are not authorized to edit this comment");
         }
 
         comment.setContent(content.trim());
@@ -85,40 +95,103 @@ public class TaskCommentService {
         return commentRepository.save(comment);
     }
 
-    // Delete own comment
+    // Delete own comment or moderate another user's comment
     public void deleteComment(
             Long taskId, Long commentId, Long requesterId) {
 
         TaskComment comment = getComment(taskId, commentId);
+        AppUser requester = getUser(requesterId);
 
-        validateProjectAccess(comment.getTask(), requesterId);
+        validateCommentWriteAccess(comment.getTask(), requester);
 
-        if (!comment.getAuthor().getId().equals(requesterId)) {
+        boolean isAuthor =
+                comment.getAuthor().getId().equals(requesterId);
+
+        if (!isAuthor && !canModerate(comment.getTask(), requester)) {
             throw new SecurityException(
-                    "You can only delete your own comments");
+                    "You are not authorized to delete this comment");
         }
 
         commentRepository.delete(comment);
     }
 
-    // Validate project access
-    private void validateProjectAccess(
-            Task task, Long requesterId) {
+    // Check whether user can view project comments
+    private void validateProjectViewAccess(
+            Task task, AppUser requester) {
 
-        boolean isOwner =
-                task.getProject().getCreatedBy()
-                        .getId().equals(requesterId);
+        if (isAdmin(requester) || isProjectOwner(task, requester)) {
+            return;
+        }
 
-        boolean isMember =
-                memberRepository.existsByProject_IdAndUser_Id(
-                        task.getProject().getId(), requesterId);
+        ProjectMember membership = getMembership(task, requester);
 
-        if (!isOwner && !isMember) {
+        if (membership == null) {
             throw new SecurityException(
                     "You do not have access to this project");
         }
     }
 
+    // Check whether user can add or modify comments
+    private void validateCommentWriteAccess(
+            Task task, AppUser requester) {
+
+        if (isAdmin(requester) || isProjectOwner(task, requester)) {
+            return;
+        }
+
+        ProjectMember membership = getMembership(task, requester);
+
+        if (membership == null) {
+            throw new SecurityException(
+                    "You do not have access to this project");
+        }
+
+        if (membership.getRole() == ProjectMemberRole.VIEWER) {
+            throw new SecurityException(
+                    "Viewers cannot add, edit or delete comments");
+        }
+    }
+
+    // Check whether user can moderate other users' comments
+    private boolean canModerate(
+            Task task, AppUser requester) {
+
+        if (isAdmin(requester) || isProjectOwner(task, requester)) {
+            return true;
+        }
+
+        ProjectMember membership = getMembership(task, requester);
+
+        return membership != null
+                && (membership.getRole() == ProjectMemberRole.OWNER
+                || membership.getRole() == ProjectMemberRole.MANAGER);
+    }
+
+    // Check global Admin role
+    private boolean isAdmin(AppUser requester) {
+        return requester.getRole() == Role.ADMIN;
+    }
+
+    // Check project creator
+    private boolean isProjectOwner(
+            Task task, AppUser requester) {
+
+        return task.getProject().getCreatedBy()
+                .getId().equals(requester.getId());
+    }
+
+    // Retrieve project membership
+    private ProjectMember getMembership(
+            Task task, AppUser requester) {
+
+        return memberRepository
+                .findByProject_IdAndUser_Id(
+                        task.getProject().getId(),
+                        requester.getId())
+                .orElse(null);
+    }
+
+    // Validate comment content
     private void validateContent(String content) {
 
         if (content == null || content.isBlank()) {
@@ -132,12 +205,14 @@ public class TaskCommentService {
         }
     }
 
+    // Find task
     private Task getTask(Long taskId) {
         return taskRepository.findById(taskId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("Task not found"));
     }
 
+    // Find comment belonging to the specified task
     private TaskComment getComment(
             Long taskId, Long commentId) {
 
@@ -147,6 +222,7 @@ public class TaskCommentService {
                         new IllegalArgumentException("Comment not found"));
     }
 
+    // Find user
     private AppUser getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() ->

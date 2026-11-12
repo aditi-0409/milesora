@@ -12,6 +12,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
 @Configuration
 public class SecurityConfig {
@@ -52,18 +54,24 @@ public class SecurityConfig {
                     "/api/auth/register"
                 ).permitAll()
 
-                // Role-specific endpoints.
-                .requestMatchers("/api/admin/**")
+                // Role-specific dashboard endpoints.
+                .requestMatchers("/admin/dashboard", "/api/admin/**")
                 .hasRole("ADMIN")
-                .requestMatchers("/api/manager/**")
+
+                .requestMatchers("/manager/dashboard", "/api/manager/**")
                 .hasAnyRole("ADMIN", "PROJECT_MANAGER")
-                .requestMatchers("/api/employee/**")
-                .hasAnyRole(
-                    "ADMIN", "PROJECT_MANAGER", "EMPLOYEE"
-                )
+
+                .requestMatchers("/employee/dashboard", "/api/employee/**")
+                .hasAnyRole("ADMIN", "PROJECT_MANAGER", "EMPLOYEE")
 
                 // All other endpoints require authentication.
                 .anyRequest().authenticated()
+            )
+            
+            .exceptionHandling(exception -> exception
+            	    .authenticationEntryPoint(
+            	        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
+            	    )
             )
 
             // Disable browser form login and HTTP Basic authentication.
