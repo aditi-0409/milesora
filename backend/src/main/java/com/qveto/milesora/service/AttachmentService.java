@@ -10,10 +10,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.apache.tika.Tika;
 
 import com.qveto.milesora.entity.AppUser;
 import com.qveto.milesora.entity.Attachment;
@@ -31,6 +36,7 @@ import com.qveto.milesora.repository.TaskRepository;
 public class AttachmentService {
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+    private static final Tika TIKA = new Tika();
 
     private static final Map<String, String> ALLOWED_TYPES = Map.of(
             "pdf", "application/pdf",
@@ -100,14 +106,29 @@ public class AttachmentService {
                     "This file type is not allowed.");
         }
 
-        String actualContentType = file.getContentType();
+        // Detect the actual file type using Apache Tika.
+        String detectedContentType;
 
-        if (actualContentType != null
-                && !actualContentType.equalsIgnoreCase(expectedContentType)
-                && !actualContentType.equalsIgnoreCase("application/octet-stream")) {
-
+        try (InputStream inputStream = file.getInputStream()) {
+            detectedContentType = TIKA.detect(inputStream, originalName);
+        } catch (IOException ex) {
             throw new IllegalArgumentException(
-                    "File content type does not match its extension.");
+                    "Could not inspect the uploaded file.", ex);
+        }
+
+        // Validate detected content against the permitted extension.
+        boolean validType = detectedContentType.equalsIgnoreCase(expectedContentType);
+
+        // TXT and CSV files can both be detected as text/plain.
+        if ("csv".equals(extension)
+                && ("text/plain".equalsIgnoreCase(detectedContentType)
+                || "text/csv".equalsIgnoreCase(detectedContentType))) {
+            validType = true;
+        }
+
+        if (!validType) {
+            throw new IllegalArgumentException(
+                    "The uploaded file content does not match its extension.");
         }
 
         String storedFileName = UUID.randomUUID() + "." + extension;
@@ -172,7 +193,8 @@ public class AttachmentService {
 
         return attachmentRepository
                 .findByIdAndTask_Id(attachmentId, taskId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
                         "Attachment not found."));
     }
     
@@ -188,7 +210,8 @@ public class AttachmentService {
 
         Attachment attachment = attachmentRepository
                 .findByIdAndTask_Id(attachmentId, taskId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
                         "Attachment not found."));
 
         Path root = Paths.get(uploadDirectory)
@@ -206,6 +229,7 @@ public class AttachmentService {
     }
 
     // Delete an attachment
+    @Transactional
     public void deleteAttachment(
             Long taskId, Long attachmentId, String username) {
 
@@ -229,16 +253,25 @@ public class AttachmentService {
             throw new SecurityException("Invalid file storage path.");
         }
 
-        try {
-        	if (Files.exists(filePath)) {
-        	    Files.delete(filePath);
-        	}
+        // Delete the database record within the current transaction.
+        attachmentRepository.delete(attachment);
 
-        	attachmentRepository.delete(attachment);
-        } catch (IOException ex) {
-            throw new IllegalArgumentException(
-                    "Could not delete the attachment file.", ex);
-        }
+        // Delete the physical file only after the database commits.
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            Files.deleteIfExists(filePath);
+                        } catch (IOException ex) {
+                            System.err.println(
+                                    "Could not delete attachment file: "
+                                    + filePath);
+                            ex.printStackTrace();
+                        }
+                    }
+                });
     }
 
     // Get authenticated user

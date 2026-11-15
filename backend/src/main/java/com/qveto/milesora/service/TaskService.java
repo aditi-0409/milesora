@@ -124,6 +124,10 @@ public class TaskService {
             validateMember(projectId, assignee.getId());
 
             existingTask.setAssignedTo(assignee);
+
+        } else {
+            // Clear the existing assignment when no assignee is supplied.
+            existingTask.setAssignedTo(null);
         }
 
         existingTask.setTitle(updatedTask.getTitle());
@@ -188,25 +192,27 @@ public class TaskService {
         }
     }
 
-    // Validate user is a project member
-    private void validateMember(
-            Long projectId, Long userId) {
+    // Validate that the assigned user is an eligible project member.
+    // VIEWER members cannot be assigned tasks.
+    private void validateMember(Long projectId, Long userId) {
 
-        boolean isMember =
-                memberRepository
-                        .existsByProject_IdAndUser_Id(
-                                projectId, userId);
+        Project project = getProject(projectId);
 
-        boolean isOwner =
-                projectRepository.findById(projectId)
-                        .map(project ->
-                                project.getCreatedBy()
-                                        .getId().equals(userId))
-                        .orElse(false);
+        boolean isOwner = project.getCreatedBy()
+                .getId().equals(userId);
 
-        if (!isMember && !isOwner) {
+        if (isOwner) {
+            return;
+        }
+
+        ProjectMember membership = memberRepository
+                .findByProject_IdAndUser_Id(projectId, userId)
+                .orElseThrow(() -> new SecurityException(
+                        "User must be a project member."));
+
+        if (membership.getRole() == ProjectMemberRole.VIEWER) {
             throw new SecurityException(
-                    "User must be a project member");
+                    "Viewers cannot be assigned tasks.");
         }
     }
 

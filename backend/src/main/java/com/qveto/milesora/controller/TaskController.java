@@ -21,6 +21,7 @@ import com.qveto.milesora.entity.AppUser;
 import com.qveto.milesora.entity.Task;
 import com.qveto.milesora.repository.AppUserRepository;
 import com.qveto.milesora.service.TaskService;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/tasks")
@@ -98,7 +99,7 @@ public class TaskController {
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(
             @PathVariable Long projectId,
-            @RequestBody CreateTaskRequest request,
+            @Valid @RequestBody CreateTaskRequest request,
             Authentication authentication) {
 
         Long requesterId = getRequesterId(authentication);
@@ -146,7 +147,7 @@ public class TaskController {
     public ResponseEntity<TaskResponse> updateTask(
             @PathVariable Long projectId,
             @PathVariable Long taskId,
-            @RequestBody CreateTaskRequest request,
+            @Valid @RequestBody CreateTaskRequest request,
             Authentication authentication) {
 
         Long requesterId = getRequesterId(authentication);

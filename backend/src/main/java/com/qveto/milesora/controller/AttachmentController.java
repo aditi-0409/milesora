@@ -101,6 +101,8 @@ public class AttachmentController {
                                 .filename(attachment.getOriginalFileName())
                                 .build()
                                 .toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
                 .body(resource);
     }
 
