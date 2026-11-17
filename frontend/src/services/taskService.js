@@ -7,7 +7,40 @@ export const taskService = {
     if (isDemoMode()) {
       return mockAdapter.getTasks(params);
     }
-    return apiClient.get('/tasks', params);
+
+    // First fetch all projects accessible to the logged-in user.
+    const projects = await apiClient.get('/projects');
+
+    if (!Array.isArray(projects) || projects.length === 0) {
+      return [];
+    }
+
+    // Fetch tasks separately for each project.
+    const taskLists = await Promise.all(
+      projects.map(async (project) => {
+        const tasks = await apiClient.get(
+          `/projects/${project.id}/tasks`
+        );
+
+        if (!Array.isArray(tasks)) {
+          return [];
+        }
+
+        return tasks.map((task) => ({
+          ...task,
+          projectId: project.id,
+          projectName: project.name,
+          assignee: task.assignedToId
+            ? {
+              id: task.assignedToId,
+              name: task.assignedToName
+            }
+            : null
+        }));
+      })
+    );
+
+    return taskLists.flat();
   },
 
   async create(data) {
@@ -63,8 +96,10 @@ export const taskService = {
     if (isDemoMode()) {
       return mockAdapter.addAttachment(taskId, file, user);
     }
+
     const formData = new FormData();
     formData.append('file', file);
+
     return apiClient.upload(`/tasks/${taskId}/attachments`, formData);
   },
 
