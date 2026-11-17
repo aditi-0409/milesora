@@ -1,7 +1,15 @@
 package com.qveto.milesora.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class TaskCommentRequest {
 
+    @NotBlank(message = "Comment content is required.")
+    @Size(
+            max = 5000,
+            message = "Comment cannot exceed 5000 characters."
+    )
     private String content;
 
     public String getContent() {

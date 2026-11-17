@@ -2,10 +2,13 @@ package com.qveto.milesora.service;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.qveto.milesora.entity.AppUser;
+import com.qveto.milesora.entity.NotificationType;
 import com.qveto.milesora.entity.ProjectMember;
 import com.qveto.milesora.entity.ProjectMemberRole;
 import com.qveto.milesora.entity.Role;
@@ -24,17 +27,20 @@ public class TaskCommentService {
     private final TaskRepository taskRepository;
     private final AppUserRepository userRepository;
     private final ProjectMemberRepository memberRepository;
+    private final NotificationService notificationService;
 
     public TaskCommentService(
             TaskCommentRepository commentRepository,
             TaskRepository taskRepository,
             AppUserRepository userRepository,
-            ProjectMemberRepository memberRepository) {
+            ProjectMemberRepository memberRepository,
+            NotificationService notificationService) {
 
         this.commentRepository = commentRepository;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.memberRepository = memberRepository;
+        this.notificationService = notificationService;
     }
 
     // Add comment
@@ -53,7 +59,24 @@ public class TaskCommentService {
         comment.setAuthor(requester);
         comment.setContent(content.trim());
 
-        return commentRepository.save(comment);
+        TaskComment savedComment = commentRepository.save(comment);
+
+        AppUser assignee = task.getAssignedTo();
+
+        if (assignee != null
+                && !assignee.getId().equals(requester.getId())) {
+
+            notificationService.createNotification(
+                    assignee.getId(),
+                    "New Task Comment",
+                    requester.getName() + " commented on your task: "
+                            + task.getTitle(),
+                    NotificationType.COMMENT_ADDED,
+                    task.getId()
+            );
+        }
+
+        return savedComment;
     }
 
     // Get all comments
@@ -86,8 +109,9 @@ public class TaskCommentService {
                 comment.getAuthor().getId().equals(requesterId);
 
         if (!isAuthor && !canModerate(comment.getTask(), requester)) {
-            throw new SecurityException(
-                    "You are not authorized to edit this comment");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not authorized to edit this comment.");
         }
 
         comment.setContent(content.trim());
@@ -108,8 +132,9 @@ public class TaskCommentService {
                 comment.getAuthor().getId().equals(requesterId);
 
         if (!isAuthor && !canModerate(comment.getTask(), requester)) {
-            throw new SecurityException(
-                    "You are not authorized to delete this comment");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not authorized to delete this comment.");
         }
 
         commentRepository.delete(comment);
@@ -123,12 +148,7 @@ public class TaskCommentService {
             return;
         }
 
-        ProjectMember membership = getMembership(task, requester);
-
-        if (membership == null) {
-            throw new SecurityException(
-                    "You do not have access to this project");
-        }
+        getMembership(task, requester);
     }
 
     // Check whether user can add or modify comments
@@ -141,14 +161,10 @@ public class TaskCommentService {
 
         ProjectMember membership = getMembership(task, requester);
 
-        if (membership == null) {
-            throw new SecurityException(
-                    "You do not have access to this project");
-        }
-
         if (membership.getRole() == ProjectMemberRole.VIEWER) {
-            throw new SecurityException(
-                    "Viewers cannot add, edit or delete comments");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Viewers cannot add, edit or delete comments.");
         }
     }
 
@@ -162,9 +178,8 @@ public class TaskCommentService {
 
         ProjectMember membership = getMembership(task, requester);
 
-        return membership != null
-                && (membership.getRole() == ProjectMemberRole.OWNER
-                || membership.getRole() == ProjectMemberRole.MANAGER);
+        return membership.getRole() == ProjectMemberRole.OWNER
+                || membership.getRole() == ProjectMemberRole.MANAGER;
     }
 
     // Check global Admin role
@@ -188,20 +203,25 @@ public class TaskCommentService {
                 .findByProject_IdAndUser_Id(
                         task.getProject().getId(),
                         requester.getId())
-                .orElse(null);
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.FORBIDDEN,
+                                "You do not have access to this project."));
     }
 
     // Validate comment content
     private void validateContent(String content) {
 
         if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Comment content is required");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Comment content is required.");
         }
 
         if (content.trim().length() > 5000) {
-            throw new IllegalArgumentException(
-                    "Comment cannot exceed 5000 characters");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Comment cannot exceed 5000 characters.");
         }
     }
 
@@ -209,7 +229,9 @@ public class TaskCommentService {
     private Task getTask(Long taskId) {
         return taskRepository.findById(taskId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Task not found"));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Task not found."));
     }
 
     // Find comment belonging to the specified task
@@ -219,13 +241,17 @@ public class TaskCommentService {
         return commentRepository
                 .findByIdAndTask_Id(commentId, taskId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Comment not found"));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Comment not found."));
     }
 
     // Find user
     private AppUser getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("User not found"));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found."));
     }
 }

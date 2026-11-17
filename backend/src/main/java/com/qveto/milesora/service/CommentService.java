@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.qveto.milesora.dto.CommentResponse;
 import com.qveto.milesora.entity.AppUser;
 import com.qveto.milesora.entity.Comment;
+import com.qveto.milesora.entity.NotificationType;
 import com.qveto.milesora.entity.Project;
 import com.qveto.milesora.entity.ProjectMember;
 import com.qveto.milesora.entity.ProjectMemberRole;
@@ -27,17 +28,20 @@ public class CommentService {
     private final AppUserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final NotificationService notificationService;
 
     public CommentService(
             CommentRepository commentRepository,
             AppUserRepository userRepository,
             ProjectRepository projectRepository,
-            ProjectMemberRepository projectMemberRepository) {
+            ProjectMemberRepository projectMemberRepository,
+            NotificationService notificationService) {
 
         this.commentRepository = commentRepository;
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
+        this.notificationService = notificationService;
     }
 
     // Add a comment to a project.
@@ -58,6 +62,19 @@ public class CommentService {
         comment.setUser(user);
 
         Comment savedComment = commentRepository.save(comment);
+
+        AppUser projectCreator = project.getCreatedBy();
+
+        if (!projectCreator.getId().equals(user.getId())) {
+            notificationService.createNotification(
+                    projectCreator.getId(),
+                    "New Project Comment",
+                    user.getName() + " added a comment to your project.",
+                    NotificationType.COMMENT_ADDED,
+                    null
+            );
+        }
+
         return new CommentResponse(savedComment);
     }
 

@@ -12,5 +12,7 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     List<Attachment> findAllByTask_IdOrderByUploadedAtAsc(Long taskId);
 
     Optional<Attachment> findByIdAndTask_Id(Long id, Long taskId);
+    
+    void deleteAllByTask_Id(Long taskId);
 
 }

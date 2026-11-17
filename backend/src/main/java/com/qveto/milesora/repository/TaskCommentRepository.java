@@ -14,4 +14,6 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> 
     Optional<TaskComment> findByIdAndTask_Id(Long id, Long taskId);
 
     boolean existsByIdAndAuthor_Id(Long id, Long authorId);
+    
+    void deleteAllByTask_Id(Long taskId);
 }

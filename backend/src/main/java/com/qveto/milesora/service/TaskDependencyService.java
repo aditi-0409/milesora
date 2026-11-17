@@ -4,12 +4,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.qveto.milesora.entity.ProjectMemberRole;
+import com.qveto.milesora.entity.Role;
 import com.qveto.milesora.entity.Task;
 import com.qveto.milesora.entity.TaskDependency;
+import com.qveto.milesora.repository.AppUserRepository;
 import com.qveto.milesora.repository.ProjectMemberRepository;
 import com.qveto.milesora.repository.TaskDependencyRepository;
 import com.qveto.milesora.repository.TaskRepository;
@@ -21,15 +25,18 @@ public class TaskDependencyService {
     private final TaskDependencyRepository dependencyRepository;
     private final TaskRepository taskRepository;
     private final ProjectMemberRepository memberRepository;
+    private final AppUserRepository userRepository;
 
     public TaskDependencyService(
             TaskDependencyRepository dependencyRepository,
             TaskRepository taskRepository,
-            ProjectMemberRepository memberRepository) {
+            ProjectMemberRepository memberRepository,
+            AppUserRepository userRepository) {
 
         this.dependencyRepository = dependencyRepository;
         this.taskRepository = taskRepository;
         this.memberRepository = memberRepository;
+        this.userRepository = userRepository;
     }
 
     // Add dependency
@@ -140,9 +147,21 @@ public class TaskDependencyService {
         return false;
     }
 
-    // Validate owner or manager access
+    // Check global ADMIN role
+    private boolean isAdmin(Long requesterId) {
+
+        return userRepository.findById(requesterId)
+                .map(user -> user.getRole() == Role.ADMIN)
+                .orElse(false);
+    }
+
+    // Validate owner, manager or ADMIN access
     private void validateManagerAccess(
             Task task, Long requesterId) {
+
+        if (isAdmin(requesterId)) {
+            return;
+        }
 
         boolean isOwner =
                 task.getProject().getCreatedBy()
@@ -159,13 +178,19 @@ public class TaskDependencyService {
                         .orElse(false);
 
         if (!isOwner && !isManager) {
-            throw new SecurityException(
-                    "Only project owner or manager can manage dependencies");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only project owner, manager or ADMIN can manage dependencies");
         }
     }
-    
+
+    // Validate project access
     private void validateProjectAccess(
             Task task, Long requesterId) {
+
+        if (isAdmin(requesterId)) {
+            return;
+        }
 
         boolean isOwner =
                 task.getProject().getCreatedBy()
@@ -176,7 +201,8 @@ public class TaskDependencyService {
                         task.getProject().getId(), requesterId);
 
         if (!isOwner && !isMember) {
-            throw new SecurityException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "You do not have access to this project");
         }
     }
@@ -185,7 +211,8 @@ public class TaskDependencyService {
 
         return taskRepository.findById(taskId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Task not found"));
     }
 }

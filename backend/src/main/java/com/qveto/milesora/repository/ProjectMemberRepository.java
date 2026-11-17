@@ -27,4 +27,7 @@ public interface ProjectMemberRepository
 
     // Find all projects belonging to a user
     List<ProjectMember> findAllByUser_Id(Long userId);
+    
+    // Delete all memberships belonging to a project
+    void deleteAllByProject_Id(Long projectId);
 }

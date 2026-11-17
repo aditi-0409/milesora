@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -70,7 +71,7 @@ public class AttachmentService {
         this.appUserRepository = appUserRepository;
         this.projectMemberRepository = projectMemberRepository;
     }
-    
+
     // Upload an attachment
     @Transactional
     public Attachment uploadAttachment(
@@ -117,7 +118,8 @@ public class AttachmentService {
         }
 
         // Validate detected content against the permitted extension.
-        boolean validType = detectedContentType.equalsIgnoreCase(expectedContentType);
+        boolean validType =
+                detectedContentType.equalsIgnoreCase(expectedContentType);
 
         // TXT and CSV files can both be detected as text/plain.
         if ("csv".equals(extension)
@@ -133,7 +135,9 @@ public class AttachmentService {
 
         String storedFileName = UUID.randomUUID() + "." + extension;
 
-        Path root = Paths.get(uploadDirectory).toAbsolutePath().normalize();
+        Path root = Paths.get(uploadDirectory)
+                .toAbsolutePath().normalize();
+
         Path destination = root.resolve(storedFileName).normalize();
 
         if (!destination.startsWith(root)) {
@@ -147,6 +151,24 @@ public class AttachmentService {
                 Files.copy(inputStream, destination);
             }
 
+            // Remove the physical file if the database transaction rolls back.
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+
+                        @Override
+                        public void afterCompletion(int status) {
+                            if (status != TransactionSynchronization.STATUS_COMMITTED) {
+                                try {
+                                    Files.deleteIfExists(destination);
+                                } catch (IOException ex) {
+                                    System.err.println(
+                                            "Could not clean up uploaded file: "
+                                                    + destination);
+                                }
+                            }
+                        }
+                    });
+
             Attachment attachment = new Attachment();
             attachment.setOriginalFileName(originalName);
             attachment.setStoredFileName(storedFileName);
@@ -155,12 +177,7 @@ public class AttachmentService {
             attachment.setTask(task);
             attachment.setUploadedBy(user);
 
-            try {
-                return attachmentRepository.save(attachment);
-            } catch (RuntimeException ex) {
-                Files.deleteIfExists(destination);
-                throw ex;
-            }
+            return attachmentRepository.save(attachment);
 
         } catch (IOException ex) {
             throw new IllegalArgumentException(
@@ -181,7 +198,7 @@ public class AttachmentService {
         return attachmentRepository
                 .findAllByTask_IdOrderByUploadedAtAsc(taskId);
     }
-    
+
     @Transactional(readOnly = true)
     public Attachment getAttachment(
             Long taskId, Long attachmentId, String username) {
@@ -197,7 +214,7 @@ public class AttachmentService {
                         HttpStatus.NOT_FOUND,
                         "Attachment not found."));
     }
-    
+
     // Get the physical file path after authorization
     @Transactional(readOnly = true)
     public Path getAttachmentPath(
@@ -267,11 +284,65 @@ public class AttachmentService {
                         } catch (IOException ex) {
                             System.err.println(
                                     "Could not delete attachment file: "
-                                    + filePath);
+                                            + filePath);
                             ex.printStackTrace();
                         }
                     }
                 });
+    }
+
+    // Delete all attachments belonging to a task.
+    @Transactional
+    public void deleteAllTaskAttachments(Long taskId) {
+
+        List<Attachment> attachments =
+                attachmentRepository
+                        .findAllByTask_IdOrderByUploadedAtAsc(taskId);
+
+        Path root = Paths.get(uploadDirectory)
+                .toAbsolutePath().normalize();
+
+        List<Path> filesToDelete = new ArrayList<>();
+
+        for (Attachment attachment : attachments) {
+
+            Path filePath = root.resolve(
+                    attachment.getStoredFileName()).normalize();
+
+            if (!filePath.startsWith(root)) {
+                throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Invalid attachment storage path.");
+            }
+
+            filesToDelete.add(filePath);
+        }
+
+        // Delete database records within the current transaction.
+        attachmentRepository.deleteAll(attachments);
+
+        // Delete physical files only after successful commit.
+        if (!filesToDelete.isEmpty()) {
+
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+
+                        @Override
+                        public void afterCommit() {
+
+                            for (Path filePath : filesToDelete) {
+                                try {
+                                    Files.deleteIfExists(filePath);
+                                } catch (IOException ex) {
+                                    System.err.println(
+                                            "Could not delete attachment file: "
+                                                    + filePath);
+                                    ex.printStackTrace();
+                                }
+                            }
+                        }
+                    });
+        }
     }
 
     // Get authenticated user

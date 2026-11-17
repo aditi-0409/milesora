@@ -1,6 +1,7 @@
 package com.qveto.milesora.controller;
 
 import java.util.List;
+import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,7 @@ public class ProjectController {
     // Create project
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(
-            @RequestBody CreateProjectRequest request,
+    		@Valid @RequestBody CreateProjectRequest request,
             Authentication authentication) {
 
         Long userId = getCurrentUserId(authentication);
@@ -87,7 +88,7 @@ public class ProjectController {
     @PutMapping("/{id}")
     public ResponseEntity<ProjectResponse> updateProject(
             @PathVariable Long id,
-            @RequestBody CreateProjectRequest request,
+            @Valid @RequestBody CreateProjectRequest request,
             Authentication authentication) {
 
         Long userId = getCurrentUserId(authentication);

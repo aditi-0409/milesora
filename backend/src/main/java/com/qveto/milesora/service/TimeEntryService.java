@@ -2,8 +2,10 @@ package com.qveto.milesora.service;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.qveto.milesora.dto.TimeEntryRequest;
 import com.qveto.milesora.entity.AppUser;
@@ -89,7 +91,9 @@ public class TimeEntryService {
         TimeEntry entry = timeEntryRepository
                 .findByIdAndTask_Id(entryId, taskId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Time entry not found."));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Time entry not found."));
 
         ProjectMember membership =
                 validateViewAccess(entry.getTask(), user);
@@ -98,7 +102,8 @@ public class TimeEntryService {
                 entry.getTask().getProject(), user, membership)
                 && !entry.getUser().getId().equals(user.getId())) {
 
-            throw new SecurityException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "You can only view your own time entries.");
         }
 
@@ -116,7 +121,9 @@ public class TimeEntryService {
         TimeEntry entry = timeEntryRepository
                 .findByIdAndTask_Id(entryId, taskId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Time entry not found."));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Time entry not found."));
 
         validateManageAccess(entry, user);
         validateHours(request.getHours());
@@ -138,7 +145,9 @@ public class TimeEntryService {
         TimeEntry entry = timeEntryRepository
                 .findByIdAndTask_Id(entryId, taskId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Time entry not found."));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Time entry not found."));
 
         validateManageAccess(entry, user);
 
@@ -149,14 +158,18 @@ public class TimeEntryService {
     private AppUser getUser(String username) {
         return appUserRepository.findByUsername(username)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("User not found."));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found."));
     }
 
     // Find task
     private Task getTask(Long taskId) {
         return taskRepository.findById(taskId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Task not found."));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Task not found."));
     }
 
     // Validate hours
@@ -164,7 +177,8 @@ public class TimeEntryService {
         if (hours == null || !Double.isFinite(hours)
                 || hours <= 0 || hours > 24) {
 
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Hours must be greater than zero and cannot exceed 24.");
         }
     }
@@ -185,7 +199,8 @@ public class TimeEntryService {
                 .findByProject_IdAndUser_Id(
                         project.getId(), user.getId())
                 .orElseThrow(() ->
-                        new SecurityException(
+                        new ResponseStatusException(
+                                HttpStatus.FORBIDDEN,
                                 "You are not a member of this project."));
     }
 
@@ -231,7 +246,8 @@ public class TimeEntryService {
         ProjectMember membership = getMembership(project, user);
 
         if (membership.getRole() == ProjectMemberRole.VIEWER) {
-            throw new SecurityException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "Viewers cannot create time entries.");
         }
     }
@@ -248,7 +264,8 @@ public class TimeEntryService {
         ProjectMember membership = getMembership(project, user);
 
         if (membership.getRole() == ProjectMemberRole.VIEWER) {
-            throw new SecurityException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "Viewers cannot update or delete time entries.");
         }
 
@@ -257,7 +274,8 @@ public class TimeEntryService {
         }
 
         if (!entry.getUser().getId().equals(user.getId())) {
-            throw new SecurityException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "You can only modify your own time entries.");
         }
     }

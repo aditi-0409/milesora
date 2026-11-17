@@ -1,6 +1,7 @@
 package com.qveto.milesora.controller;
 
 import java.util.List;
+import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +36,7 @@ public class ProjectMemberController {
     @PostMapping
     public ResponseEntity<ProjectMemberResponse> addMember(
             @PathVariable Long projectId,
-            @RequestBody AddProjectMemberRequest request,
+            @Valid @RequestBody AddProjectMemberRequest request,
             Authentication authentication) {
 
         Long requesterId = getCurrentUserId(authentication);

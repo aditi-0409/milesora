@@ -23,5 +23,7 @@ public interface TimeEntryRepository
     // Find all time entries for a task and user
     List<TimeEntry> findAllByTask_IdAndUser_IdOrderByEntryDateDesc(
             Long taskId, Long userId);
+    
+    void deleteAllByTask_Id(Long taskId);
 
 }

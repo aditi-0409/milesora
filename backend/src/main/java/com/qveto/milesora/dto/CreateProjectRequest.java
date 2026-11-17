@@ -2,12 +2,20 @@ package com.qveto.milesora.dto;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 import com.qveto.milesora.entity.ProjectStatus;
 
 public class CreateProjectRequest {
 
+    @NotBlank(message = "Project name is required")
+    @Size(max = 150, message = "Project name cannot exceed 150 characters")
     private String name;
+
+    @Size(max = 2000, message = "Description cannot exceed 2000 characters")
     private String description;
+
     private LocalDate startDate;
     private LocalDate endDate;
     private ProjectStatus status;

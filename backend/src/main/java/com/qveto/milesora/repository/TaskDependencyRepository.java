@@ -22,4 +22,8 @@ public interface TaskDependencyRepository
 
     void deleteByTask_IdAndDependsOnTask_Id(
             Long taskId, Long dependsOnTaskId);
+    
+    void deleteAllByTask_Id(Long taskId);
+
+    void deleteAllByDependsOnTask_Id(Long taskId);
 }

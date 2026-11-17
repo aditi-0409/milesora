@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.qveto.milesora.entity.*;
 import com.qveto.milesora.repository.*;
@@ -16,17 +18,35 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final AppUserRepository userRepository;
     private final ProjectMemberRepository memberRepository;
+    private final NotificationService notificationService;
+    private final TaskDependencyRepository dependencyRepository;
+    private final TimeEntryRepository timeEntryRepository;
+    private final TaskCommentRepository taskCommentRepository;
+    private final NotificationRepository notificationRepository;
+    private final AttachmentService attachmentService;
 
     public TaskService(
             TaskRepository taskRepository,
             ProjectRepository projectRepository,
             AppUserRepository userRepository,
-            ProjectMemberRepository memberRepository) {
+            ProjectMemberRepository memberRepository,
+            NotificationService notificationService,
+            TaskDependencyRepository dependencyRepository,
+            TimeEntryRepository timeEntryRepository,
+            TaskCommentRepository taskCommentRepository,
+            NotificationRepository notificationRepository,
+            AttachmentService attachmentService) {
 
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.memberRepository = memberRepository;
+        this.notificationService = notificationService;
+        this.dependencyRepository = dependencyRepository;
+        this.timeEntryRepository = timeEntryRepository;
+        this.taskCommentRepository = taskCommentRepository;
+        this.notificationRepository = notificationRepository;
+        this.attachmentService = attachmentService;
     }
 
     // Create task
@@ -36,11 +56,9 @@ public class TaskService {
             Long requesterId) {
 
         Project project = getProject(projectId);
-
         AppUser requester = getUser(requesterId);
 
         validateManagerAccess(project, requesterId);
-
         validateDates(task);
 
         if (task.getAssignedTo() != null) {
@@ -49,7 +67,6 @@ public class TaskService {
                     getUser(task.getAssignedTo().getId());
 
             validateMember(projectId, assignee.getId());
-
             task.setAssignedTo(assignee);
         }
 
@@ -64,7 +81,20 @@ public class TaskService {
             task.setPriority(TaskPriority.MEDIUM);
         }
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        if (savedTask.getAssignedTo() != null) {
+            notificationService.createNotification(
+                    savedTask.getAssignedTo().getId(),
+                    "New Task Assigned",
+                    "You have been assigned a new task: "
+                            + savedTask.getTitle(),
+                    NotificationType.TASK_ASSIGNED,
+                    savedTask.getId()
+            );
+        }
+
+        return savedTask;
     }
 
     // Get all tasks in a project
@@ -93,7 +123,8 @@ public class TaskService {
         return taskRepository
                 .findByIdAndProject_Id(taskId, projectId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Task not found"));
     }
 
@@ -111,10 +142,16 @@ public class TaskService {
         Task existingTask = taskRepository
                 .findByIdAndProject_Id(taskId, projectId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Task not found"));
 
         validateDates(updatedTask);
+
+        Long previousAssigneeId =
+                existingTask.getAssignedTo() != null
+                        ? existingTask.getAssignedTo().getId()
+                        : null;
 
         if (updatedTask.getAssignedTo() != null) {
 
@@ -126,34 +163,59 @@ public class TaskService {
             existingTask.setAssignedTo(assignee);
 
         } else {
-            // Clear the existing assignment when no assignee is supplied.
             existingTask.setAssignedTo(null);
         }
 
         existingTask.setTitle(updatedTask.getTitle());
-        existingTask.setDescription(
-                updatedTask.getDescription());
-
-        existingTask.setStartDate(
-                updatedTask.getStartDate());
-
-        existingTask.setDueDate(
-                updatedTask.getDueDate());
+        existingTask.setDescription(updatedTask.getDescription());
+        existingTask.setStartDate(updatedTask.getStartDate());
+        existingTask.setDueDate(updatedTask.getDueDate());
 
         if (updatedTask.getStatus() != null) {
-            existingTask.setStatus(
-                    updatedTask.getStatus());
+            existingTask.setStatus(updatedTask.getStatus());
         }
 
         if (updatedTask.getPriority() != null) {
-            existingTask.setPriority(
-                    updatedTask.getPriority());
+            existingTask.setPriority(updatedTask.getPriority());
         }
 
-        return taskRepository.save(existingTask);
+        Task savedTask = taskRepository.save(existingTask);
+
+        Long newAssigneeId =
+                savedTask.getAssignedTo() != null
+                        ? savedTask.getAssignedTo().getId()
+                        : null;
+
+        if (newAssigneeId != null) {
+
+            if (!newAssigneeId.equals(previousAssigneeId)) {
+
+                notificationService.createNotification(
+                        newAssigneeId,
+                        "Task Assigned",
+                        "You have been assigned the task: "
+                                + savedTask.getTitle(),
+                        NotificationType.TASK_ASSIGNED,
+                        savedTask.getId()
+                );
+
+            } else {
+
+                notificationService.createNotification(
+                        newAssigneeId,
+                        "Task Updated",
+                        "Your assigned task has been updated: "
+                                + savedTask.getTitle(),
+                        NotificationType.TASK_UPDATED,
+                        savedTask.getId()
+                );
+            }
+        }
+
+        return savedTask;
     }
 
-    // Delete task
+    // Delete task and all related records
     public void deleteTask(
             Long projectId,
             Long taskId,
@@ -166,9 +228,23 @@ public class TaskService {
         Task task = taskRepository
                 .findByIdAndProject_Id(taskId, projectId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Task not found"));
 
+        // Remove dependencies in both directions.
+        dependencyRepository.deleteAllByTask_Id(taskId);
+        dependencyRepository.deleteAllByDependsOnTask_Id(taskId);
+
+        // Remove related records.
+        timeEntryRepository.deleteAllByTask_Id(taskId);
+        taskCommentRepository.deleteAllByTask_Id(taskId);
+        notificationRepository.deleteAllByTask_Id(taskId);
+
+        // Remove attachment records and schedule physical file cleanup.
+        attachmentService.deleteAllTaskAttachments(taskId);
+
+        // Finally, delete the task.
         taskRepository.delete(task);
     }
 
@@ -184,8 +260,7 @@ public class TaskService {
 
         if (task.getStartDate() != null &&
                 task.getDueDate() != null &&
-                task.getDueDate().isBefore(
-                        task.getStartDate())) {
+                task.getDueDate().isBefore(task.getStartDate())) {
 
             throw new IllegalArgumentException(
                     "Due date cannot be before start date");
@@ -207,18 +282,32 @@ public class TaskService {
 
         ProjectMember membership = memberRepository
                 .findByProject_IdAndUser_Id(projectId, userId)
-                .orElseThrow(() -> new SecurityException(
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
                         "User must be a project member."));
 
         if (membership.getRole() == ProjectMemberRole.VIEWER) {
-            throw new SecurityException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "Viewers cannot be assigned tasks.");
         }
     }
 
-    // Check manager access
+    // Check whether the requester is a global Admin.
+    private boolean isAdmin(Long requesterId) {
+
+        return userRepository.findById(requesterId)
+                .map(user -> user.getRole() == Role.ADMIN)
+                .orElse(false);
+    }
+
+    // Check manager access: Admin, project owner or project manager.
     private void validateManagerAccess(
             Project project, Long requesterId) {
+
+        if (isAdmin(requesterId)) {
+            return;
+        }
 
         boolean isOwner =
                 project.getCreatedBy()
@@ -234,26 +323,31 @@ public class TaskService {
                         .orElse(false);
 
         if (!isOwner && !isManager) {
-            throw new SecurityException(
-                    "Only project owner or manager can manage tasks");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only Admin, project owner or manager can manage tasks");
         }
     }
 
-    // Check member access
+    // Check member access: Admin, project owner or project member.
     private void validateMemberAccess(
             Project project, Long requesterId) {
+
+        if (isAdmin(requesterId)) {
+            return;
+        }
 
         boolean isOwner =
                 project.getCreatedBy()
                         .getId().equals(requesterId);
 
         boolean isMember =
-                memberRepository
-                        .existsByProject_IdAndUser_Id(
-                                project.getId(), requesterId);
+                memberRepository.existsByProject_IdAndUser_Id(
+                        project.getId(), requesterId);
 
         if (!isOwner && !isMember) {
-            throw new SecurityException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "You do not have access to this project");
         }
     }
@@ -262,7 +356,8 @@ public class TaskService {
 
         return projectRepository.findById(projectId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Project not found"));
     }
 
@@ -270,7 +365,8 @@ public class TaskService {
 
         return userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "User not found"));
     }
 }

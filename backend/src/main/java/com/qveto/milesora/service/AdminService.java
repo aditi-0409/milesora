@@ -167,7 +167,8 @@ public class AdminService {
         return convertToResponse(userRepository.save(user));
     }
 
-    // 6. Delete a user
+
+    // 6. Safely deactivate a user instead of physically deleting records
     public void deleteUser(Long id, String adminUsername) {
 
         AppUser user = findUserById(id);
@@ -179,15 +180,20 @@ public class AdminService {
         }
 
         if (user.getRole() == Role.ADMIN
-        		&& user.isEnabled()
+                && user.isEnabled()
                 && userRepository.countByRoleAndEnabled(Role.ADMIN, true) <= 1) {
+
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Cannot delete the last Admin account");
+                    "Cannot delete the last active Admin account");
         }
 
-        userRepository.delete(user);
+        // Preserve database relationships and deactivate the account.
+        user.setEnabled(false);
+
+        userRepository.save(user);
     }
+
 
     // 7. Find user or return 404
     private AppUser findUserById(Long id) {

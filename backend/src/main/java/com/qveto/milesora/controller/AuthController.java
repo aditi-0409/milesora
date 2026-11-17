@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -56,19 +57,22 @@ public class AuthController {
         String password = request.getPassword();
 
         try {
+            // Find the account using its email address.
+            AppUser user = userRepository.findByEmail(email)
+                    .orElseThrow(() ->
+                            new BadCredentialsException(
+                                    "Invalid email or password."));
+
+            // Authenticate using the actual stored username.
             Authentication authentication =
                     authenticationManager.authenticate(
                             new UsernamePasswordAuthenticationToken(
-                                    email, password));
+                                    user.getUsername(), password));
 
             UserDetails userDetails =
                     (UserDetails) authentication.getPrincipal();
 
             String token = jwtService.generateToken(userDetails);
-
-            AppUser user = userRepository.findByUsername(email)
-                    .orElseThrow(() ->
-                            new UsernameNotFoundException("User not found"));
 
             return ResponseEntity.ok(
                     Map.of(

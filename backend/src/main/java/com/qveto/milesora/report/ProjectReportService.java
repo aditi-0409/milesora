@@ -5,17 +5,19 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.qveto.milesora.entity.AppUser;
 import com.qveto.milesora.entity.Project;
+import com.qveto.milesora.entity.Role;
 import com.qveto.milesora.entity.Task;
 import com.qveto.milesora.entity.TaskStatus;
 import com.qveto.milesora.entity.TimeEntry;
+import com.qveto.milesora.repository.AppUserRepository;
 import com.qveto.milesora.repository.ProjectMemberRepository;
 import com.qveto.milesora.repository.ProjectRepository;
 import com.qveto.milesora.repository.TaskRepository;
-import com.qveto.milesora.entity.AppUser;
-import com.qveto.milesora.entity.Role;
-import com.qveto.milesora.repository.AppUserRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -45,8 +47,10 @@ public class ProjectReportService {
             Long projectId, Long requesterId) {
 
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Project not found"));
+        		.orElseThrow(() ->
+                new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Project not found"));
 
         validateReportAccess(project, requesterId);
 
@@ -121,8 +125,9 @@ public class ProjectReportService {
                         project.getId(), requesterId);
 
         if (!isOwner && !isMember) {
-            throw new SecurityException(
-                    "You do not have permission to view this project's reports");
+        	throw new ResponseStatusException(
+        	        HttpStatus.FORBIDDEN,
+        	        "You do not have permission to view this project's reports");
         }
     }
 }

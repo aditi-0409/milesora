@@ -25,4 +25,7 @@ public interface CommentRepository
     // Check whether a user owns a particular comment.
     boolean existsByIdAndUser_Id(
             Long commentId, Long userId);
+
+    // Delete all comments belonging to a project.
+    void deleteAllByProject_Id(Long projectId);
 }
