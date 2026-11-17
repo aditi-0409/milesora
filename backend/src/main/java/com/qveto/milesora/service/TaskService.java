@@ -24,6 +24,7 @@ public class TaskService {
     private final TaskCommentRepository taskCommentRepository;
     private final NotificationRepository notificationRepository;
     private final AttachmentService attachmentService;
+    private final ActivityService activityService;
 
     public TaskService(
             TaskRepository taskRepository,
@@ -35,7 +36,8 @@ public class TaskService {
             TimeEntryRepository timeEntryRepository,
             TaskCommentRepository taskCommentRepository,
             NotificationRepository notificationRepository,
-            AttachmentService attachmentService) {
+            AttachmentService attachmentService,
+            ActivityService activityService) {
 
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
@@ -47,9 +49,10 @@ public class TaskService {
         this.taskCommentRepository = taskCommentRepository;
         this.notificationRepository = notificationRepository;
         this.attachmentService = attachmentService;
+        this.activityService = activityService;
     }
 
-    // Create task
+    // Create task.
     public Task createTask(
             Long projectId,
             Task task,
@@ -94,22 +97,26 @@ public class TaskService {
             );
         }
 
+        activityService.recordActivity(
+                requester,
+                "created a new task",
+                savedTask.getTitle());
+
         return savedTask;
     }
 
-    // Get all tasks in a project
+    // Get all tasks in a project.
     @Transactional(readOnly = true)
     public List<Task> getProjectTasks(
             Long projectId, Long requesterId) {
 
         Project project = getProject(projectId);
-
         validateMemberAccess(project, requesterId);
 
         return taskRepository.findAllByProject_Id(projectId);
     }
 
-    // Get task by ID
+    // Get task by ID.
     @Transactional(readOnly = true)
     public Task getTaskById(
             Long projectId,
@@ -117,7 +124,6 @@ public class TaskService {
             Long requesterId) {
 
         Project project = getProject(projectId);
-
         validateMemberAccess(project, requesterId);
 
         return taskRepository
@@ -128,7 +134,7 @@ public class TaskService {
                                 "Task not found"));
     }
 
-    // Update task
+    // Update task.
     public Task updateTask(
             Long projectId,
             Long taskId,
@@ -136,7 +142,6 @@ public class TaskService {
             Long requesterId) {
 
         Project project = getProject(projectId);
-
         validateManagerAccess(project, requesterId);
 
         Task existingTask = taskRepository
@@ -159,7 +164,6 @@ public class TaskService {
                     getUser(updatedTask.getAssignedTo().getId());
 
             validateMember(projectId, assignee.getId());
-
             existingTask.setAssignedTo(assignee);
 
         } else {
@@ -212,17 +216,23 @@ public class TaskService {
             }
         }
 
+        AppUser requester = getUser(requesterId);
+
+        activityService.recordActivity(
+                requester,
+                "updated a task",
+                savedTask.getTitle());
+
         return savedTask;
     }
 
-    // Delete task and all related records
+    // Delete task and all related records.
     public void deleteTask(
             Long projectId,
             Long taskId,
             Long requesterId) {
 
         Project project = getProject(projectId);
-
         validateManagerAccess(project, requesterId);
 
         Task task = taskRepository
@@ -231,6 +241,9 @@ public class TaskService {
                         new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,
                                 "Task not found"));
+
+        AppUser requester = getUser(requesterId);
+        String taskTitle = task.getTitle();
 
         // Remove dependencies in both directions.
         dependencyRepository.deleteAllByTask_Id(taskId);
@@ -246,9 +259,14 @@ public class TaskService {
 
         // Finally, delete the task.
         taskRepository.delete(task);
+
+        activityService.recordActivity(
+                requester,
+                "deleted a task",
+                taskTitle);
     }
 
-    // Validate task dates
+    // Validate task dates.
     private void validateDates(Task task) {
 
         if (task.getTitle() == null ||
@@ -260,7 +278,8 @@ public class TaskService {
 
         if (task.getStartDate() != null &&
                 task.getDueDate() != null &&
-                task.getDueDate().isBefore(task.getStartDate())) {
+                task.getDueDate().isBefore(
+                        task.getStartDate())) {
 
             throw new IllegalArgumentException(
                     "Due date cannot be before start date");
@@ -293,21 +312,9 @@ public class TaskService {
         }
     }
 
-    // Check whether the requester is a global Admin.
-    private boolean isAdmin(Long requesterId) {
-
-        return userRepository.findById(requesterId)
-                .map(user -> user.getRole() == Role.ADMIN)
-                .orElse(false);
-    }
-
-    // Check manager access: Admin, project owner or project manager.
+    // Check manager access.
     private void validateManagerAccess(
             Project project, Long requesterId) {
-
-        if (isAdmin(requesterId)) {
-            return;
-        }
 
         boolean isOwner =
                 project.getCreatedBy()
@@ -325,25 +332,22 @@ public class TaskService {
         if (!isOwner && !isManager) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "Only Admin, project owner or manager can manage tasks");
+                    "Only project owner or manager can manage tasks");
         }
     }
 
-    // Check member access: Admin, project owner or project member.
+    // Check member access.
     private void validateMemberAccess(
             Project project, Long requesterId) {
-
-        if (isAdmin(requesterId)) {
-            return;
-        }
 
         boolean isOwner =
                 project.getCreatedBy()
                         .getId().equals(requesterId);
 
         boolean isMember =
-                memberRepository.existsByProject_IdAndUser_Id(
-                        project.getId(), requesterId);
+                memberRepository
+                        .existsByProject_IdAndUser_Id(
+                                project.getId(), requesterId);
 
         if (!isOwner && !isMember) {
             throw new ResponseStatusException(

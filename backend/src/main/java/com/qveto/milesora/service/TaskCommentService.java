@@ -28,22 +28,25 @@ public class TaskCommentService {
     private final AppUserRepository userRepository;
     private final ProjectMemberRepository memberRepository;
     private final NotificationService notificationService;
+    private final ActivityService activityService;
 
     public TaskCommentService(
             TaskCommentRepository commentRepository,
             TaskRepository taskRepository,
             AppUserRepository userRepository,
             ProjectMemberRepository memberRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            ActivityService activityService) {
 
         this.commentRepository = commentRepository;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.memberRepository = memberRepository;
         this.notificationService = notificationService;
+        this.activityService = activityService;
     }
 
-    // Add comment
+    // Add comment.
     public TaskComment addComment(
             Long taskId, String content, Long requesterId) {
 
@@ -76,10 +79,15 @@ public class TaskCommentService {
             );
         }
 
+        activityService.recordActivity(
+                requester,
+                "commented on a task",
+                task.getTitle());
+
         return savedComment;
     }
 
-    // Get all comments
+    // Get all comments.
     @Transactional(readOnly = true)
     public List<TaskComment> getComments(
             Long taskId, Long requesterId) {
@@ -93,7 +101,7 @@ public class TaskCommentService {
                 .findAllByTask_IdOrderByCreatedAtAsc(taskId);
     }
 
-    // Update own comment or moderate another user's comment
+    // Update own comment or moderate another user's comment.
     public TaskComment updateComment(
             Long taskId, Long commentId,
             String content, Long requesterId) {
@@ -119,7 +127,7 @@ public class TaskCommentService {
         return commentRepository.save(comment);
     }
 
-    // Delete own comment or moderate another user's comment
+    // Delete own comment or moderate another user's comment.
     public void deleteComment(
             Long taskId, Long commentId, Long requesterId) {
 
@@ -140,7 +148,7 @@ public class TaskCommentService {
         commentRepository.delete(comment);
     }
 
-    // Check whether user can view project comments
+    // Check whether user can view project comments.
     private void validateProjectViewAccess(
             Task task, AppUser requester) {
 
@@ -151,7 +159,7 @@ public class TaskCommentService {
         getMembership(task, requester);
     }
 
-    // Check whether user can add or modify comments
+    // Check whether user can add or modify comments.
     private void validateCommentWriteAccess(
             Task task, AppUser requester) {
 
@@ -168,7 +176,7 @@ public class TaskCommentService {
         }
     }
 
-    // Check whether user can moderate other users' comments
+    // Check whether user can moderate other users' comments.
     private boolean canModerate(
             Task task, AppUser requester) {
 
@@ -182,12 +190,12 @@ public class TaskCommentService {
                 || membership.getRole() == ProjectMemberRole.MANAGER;
     }
 
-    // Check global Admin role
+    // Check global Admin role.
     private boolean isAdmin(AppUser requester) {
         return requester.getRole() == Role.ADMIN;
     }
 
-    // Check project creator
+    // Check project creator.
     private boolean isProjectOwner(
             Task task, AppUser requester) {
 
@@ -195,7 +203,7 @@ public class TaskCommentService {
                 .getId().equals(requester.getId());
     }
 
-    // Retrieve project membership
+    // Retrieve project membership.
     private ProjectMember getMembership(
             Task task, AppUser requester) {
 
@@ -209,7 +217,7 @@ public class TaskCommentService {
                                 "You do not have access to this project."));
     }
 
-    // Validate comment content
+    // Validate comment content.
     private void validateContent(String content) {
 
         if (content == null || content.isBlank()) {
@@ -225,7 +233,7 @@ public class TaskCommentService {
         }
     }
 
-    // Find task
+    // Find task.
     private Task getTask(Long taskId) {
         return taskRepository.findById(taskId)
                 .orElseThrow(() ->
@@ -234,7 +242,7 @@ public class TaskCommentService {
                                 "Task not found."));
     }
 
-    // Find comment belonging to the specified task
+    // Find comment belonging to the specified task.
     private TaskComment getComment(
             Long taskId, Long commentId) {
 
@@ -246,7 +254,7 @@ public class TaskCommentService {
                                 "Comment not found."));
     }
 
-    // Find user
+    // Find user.
     private AppUser getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() ->

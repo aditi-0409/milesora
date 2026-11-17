@@ -29,19 +29,22 @@ public class CommentService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final NotificationService notificationService;
+    private final ActivityService activityService;
 
     public CommentService(
             CommentRepository commentRepository,
             AppUserRepository userRepository,
             ProjectRepository projectRepository,
             ProjectMemberRepository projectMemberRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            ActivityService activityService) {
 
         this.commentRepository = commentRepository;
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.notificationService = notificationService;
+        this.activityService = activityService;
     }
 
     // Add a comment to a project.
@@ -74,6 +77,11 @@ public class CommentService {
                     null
             );
         }
+
+        activityService.recordActivity(
+                user,
+                "commented on a project",
+                project.getName());
 
         return new CommentResponse(savedComment);
     }
@@ -213,7 +221,6 @@ public class CommentService {
     private void requireCanComment(
             Project project, AppUser user) {
 
-        // Admin and project creator have access.
         if (user.getRole() == Role.ADMIN ||
                 isProjectCreator(project, user)) {
             return;
